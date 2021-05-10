@@ -11,26 +11,21 @@ import random
 import traceback
 
 # CONFIG
-server = "192.168.100.150"
-username = ""
-password = ""
-host_name = "LIYUANYUAN"
-host_os = "8089D"
-host_ip = "10.30.22.17"
-PRIMARY_DNS = "114.114.114.114"
-dhcp_server = "0.0.0.0"
-mac = 0xb888e3051680
+server = '172.18.0.2'
+username = '*@unicom' # 宽带账号+@运营商(19级以前一般是准考证号,19级以后一般是学号)
+password = '******' # 宽带密码(一般是身份证后六位)
 CONTROLCHECKSTATUS = '\x20'
-ADAPTERNUM = '\x01'
-KEEP_ALIVE_VERSION = '\xdc\x02'
-'''
-AUTH_VERSION:
-    unsigned char ClientVerInfoAndInternetMode;
-    unsigned char DogVersion;
-'''
-AUTH_VERSION = '\x0a\x00'
+ADAPTERNUM = '\x09'
+host_ip = '172.18.65.*' # dhcp获取到的本机ip
 IPDOG = '\x01'
-ror_version = False
+host_name = 'fuyumi' # 自定义
+PRIMARY_DNS = '114.114.114.114'
+dhcp_server = '172.18.64.1'
+AUTH_VERSION = '\x31\x00'
+mac = 0x940100000611 #本机网卡mac地址
+host_os = 'Windows 10' #自定义
+KEEP_ALIVE_VERSION = '\xdc\x02'
+ror_version = True
 # CONFIG_END
 
 keep_alive1_mod = False #If you have trouble at KEEPALIVE1, turn this value to True

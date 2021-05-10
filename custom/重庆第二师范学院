@@ -4,36 +4,30 @@
 import socket
 import struct
 import time
-import hashlib
+from hashlib import md5
 import sys
 import os
 import random
-import traceback
 
 # CONFIG
-server = "192.168.100.150"
-username = ""
-password = ""
-host_name = "LIYUANYUAN"
-host_os = "8089D"
-host_ip = "10.30.22.17"
-PRIMARY_DNS = "114.114.114.114"
-dhcp_server = "0.0.0.0"
-mac = 0xb888e3051680
+server = '10.2.3.253'
+username='xxx'
+password='xxx'
 CONTROLCHECKSTATUS = '\x20'
-ADAPTERNUM = '\x01'
-KEEP_ALIVE_VERSION = '\xdc\x02'
-'''
-AUTH_VERSION:
-    unsigned char ClientVerInfoAndInternetMode;
-    unsigned char DogVersion;
-'''
-AUTH_VERSION = '\x0a\x00'
+ADAPTERNUM = '\x03'
+host_ip = '10.20.12.145'
 IPDOG = '\x01'
-ror_version = False
+host_name = 'GILIGILIEYE'
+PRIMARY_DNS = '218.201.21.132'
+dhcp_server = '10.20.12.1'
+AUTH_VERSION = '\x26\x00'
+mac = 0x425339xxxxx
+host_os = 'NOTE7'
+KEEP_ALIVE_VERSION = '\xd8\x02'
+ror_version = False 
+
 # CONFIG_END
 
-keep_alive1_mod = False #If you have trouble at KEEPALIVE1, turn this value to True
 nic_name = '' #Indicate your nic, e.g. 'eth0.2'.nic_name
 bind_ip = '0.0.0.0'
 
@@ -74,7 +68,7 @@ s.bind((bind_ip, 61440))
 
 s.settimeout(3)
 SALT = ''
-IS_TEST = True
+IS_TEST = False
 # specified fields based on version
 CONF = "/etc/drcom.conf"
 UNLIMITED_RETRY = True
@@ -115,7 +109,7 @@ def challenge(svr,ran):
     return data[4:8]
 
 def md5sum(s):
-    m = hashlib.md5()
+    m = md5()
     m.update(s)
     return m.digest()
 
@@ -131,49 +125,6 @@ def ror(md5, pwd):
         x = ord(md5[i]) ^ ord(pwd[i])
         ret += chr(((x<<3)&0xFF) + (x>>5))
     return ret
-
-def gen_crc(data, encrypt_type):
-    DRCOM_DIAL_EXT_PROTO_CRC_INIT = 20000711
-    ret = ''
-    if encrypt_type == 0:
-        # 加密方式无
-        return struct.pack('<I',DRCOM_DIAL_EXT_PROTO_CRC_INIT) + struct.pack('<I',126)
-    elif encrypt_type == 1:
-        # 加密方式为 md5
-        foo = hashlib.md5(data).digest()
-        ret += foo[2]
-        ret += foo[3]
-        ret += foo[8]
-        ret += foo[9]
-        ret += foo[5]
-        ret += foo[6]
-        ret += foo[13]
-        ret += foo[14]
-        return ret
-    elif encrypt_type == 2:
-        # md4
-        foo = hashlib.new('md4', data).digest()
-        ret += foo[1]
-        ret += foo[2]
-        ret += foo[8]
-        ret += foo[9]
-        ret += foo[4]
-        ret += foo[5]
-        ret += foo[11]
-        ret += foo[12]
-        return ret
-    elif encrypt_type == 3:
-        # sha1
-        foo = hashlib.sha1(data).digest()
-        ret += foo[2]
-        ret += foo[3]
-        ret += foo[9]
-        ret += foo[10]
-        ret += foo[5]
-        ret += foo[6]
-        ret += foo[15]
-        ret += foo[16]
-        return ret
 
 def keep_alive_package_builder(number,random,tail,type=1,first=False):
     data = '\x07'+ chr(number) + '\x28\x00\x0b' + chr(type)
@@ -293,7 +244,7 @@ def keep_alive2(*args):
             #log('DEBUG: keep_alive2,packet 5 return\n',data.encode('hex'))
             i = (i+2) % 0xFF
         except:
-            break
+            pass
 
 def checksum(s):
     ret = 1234
@@ -405,13 +356,9 @@ def mkpkt(salt, usr, pwd, mac):
     data += '\x00\x00' # _tagDrcomAuthExtData.Option
     data += dump(mac) # _tagDrcomAuthExtData.AdapterAddress
     # END OF _tagDrcomAuthExtData
-    if ror_version:
-        data += '\x00' * (8 - len(pwd))
-        if len(pwd)%2:
-            data += '\x00'
-    else:
-        data += '\x00' # auto logout / default: False
-        data += '\x00' # broadcast mode / default : False
+
+    data += '\x00' # auto logout / default: False
+    data += '\x00' # broadcast mode / default : False
     data += '\xE9\x13' #unknown, filled numbers randomly =w=
 
     log('[mkpkt]',data.encode('hex'))
@@ -422,42 +369,30 @@ def login(usr, pwd, svr):
     global AUTH_INFO
 
     i = 0
-    timeoutcount = 0
     while True:
         salt = challenge(svr,time.time()+random.randint(0xF,0xFF))
         SALT = salt
         packet = mkpkt(salt, usr, pwd, mac)
         log('[login] send',packet.encode('hex'))
         s.sendto(packet, (svr, 61440))
+        data, address = s.recvfrom(1024)
+        log('[login] recv',data.encode('hex'))
         log('[login] packet sent.')
-        try:
-            data, address = s.recvfrom(1024)
-            log('[login] recv',data.encode('hex'))
-            if address == (svr, 61440) :
-                if data[0] == '\x04':
-                    log('[login] loged in')
-                    AUTH_INFO = data[23:39]
-                    break
-                else:
-                    log('[login] login failed.')
-                    if IS_TEST:
-                        time.sleep(3)
-                    else:
-                        time.sleep(30)
-                    continue
+        if address == (svr, 61440):
+            if data[0] == '\x04':
+                log('[login] loged in')
+                AUTH_INFO = data[23:39]
+                break
             else:
-                if i >= 5 and UNLIMITED_RETRY == False :
-                    log('[login] exception occured.')
-                    sys.exit(1)
+                log('[login] login failed.')
+                if IS_TEST:
+                    time.sleep(3)
                 else:
-                    i += 1
-                    continue
-        except socket.timeout as e:
-            print(e)
-            log('[login] recv timeout.')
-            timeoutcount += 1
-            if timeoutcount >= 5:
-                log('[login] recv timeout exception occured 5 times.')
+                    time.sleep(30)
+                continue
+        else:
+            if i >= 5 and UNLIMITED_RETRY == False :
+                log('[login] exception occured.')
                 sys.exit(1)
             else:
                 continue
@@ -484,55 +419,20 @@ def logout(usr, pwd, svr, mac, auth_info):
             log('[logout_auth] logouted.')
 
 def keep_alive1(salt,tail,pwd,svr):
-    if keep_alive1_mod:
-        res=''
-        while True:
-            s.sendto('\x07' + struct.pack('!B',int(time.time())%0xFF) + '\x08\x00\x01\x00\x00\x00', (svr, 61440))
-            log('[keep_alive1_challenge] keep_alive1_challenge packet sent.')
-            try:
-                res, address = s.recvfrom(1024)
-                log('[keep_alive1_challenge] recv', res.encode('hex'))
-            except:
-                log('[keep_alive1_challenge] timeout, retrying...')
-                continue
-            if address == (svr, 61440):
-                if res[0] == '\x07':
-                    break
-                else:
-                    raise ChallengeException
-            else:
-                continue
+    foo = struct.pack('!H',int(time.time())%0xFFFF)
+    data = '\xff' + md5sum('\x03\x01'+salt+pwd) + '\x00\x00\x00'
+    data += tail
+    data += foo + '\x00\x00\x00\x00'
+    log('[keep_alive1] send',data.encode('hex'))
 
-        seed = res[8:12]
-        # encrypt_type = int(res[5].encode('hex'))
-        encrypt_type = struct.unpack('<I', seed)[0] & 3
-        crc = gen_crc(seed, encrypt_type)
-        data = '\xFF' + '\x00'*7 + seed + crc + tail + struct.pack('!H', int(time.time())%0xFFFF)
-        log('[keep_alive1] send', data.encode('hex'))
-        s.sendto(data, (svr, 61440))
-        while True:
-            res, address = s.recvfrom(1024)
-            if res[0] == '\x07':
-                break
-            else:
-                log('[keep-alive1]recv/not expected', res.encode('hex'))
-        log('[keep-alive1]recv', res.encode('hex'))
-
-    else:
-        foo = struct.pack('!H',int(time.time())%0xFFFF)
-        data = '\xff' + md5sum('\x03\x01'+salt+pwd) + '\x00\x00\x00'
-        data += tail
-        data += foo + '\x00\x00\x00\x00'
-        log('[keep_alive1] send',data.encode('hex'))
-
-        s.sendto(data, (svr, 61440))
-        while True:
-            data, address = s.recvfrom(1024)
-            if data[0] == '\x07':
-                break
-            else:
-                log('[keep-alive1]recv/not expected',data.encode('hex'))
-        log('[keep-alive1] recv', data.encode('hex'))
+    s.sendto(data, (svr, 61440))
+    while True:
+        data, address = s.recvfrom(1024)
+        if data[0] == '\x07':
+            break
+        else:
+            log('[keep-alive1]recv/not expected',data.encode('hex'))
+    log('[keep-alive1] recv',data.encode('hex'))
 
 def empty_socket_buffer():
 #empty buffer for some fucking schools
@@ -559,15 +459,15 @@ def main():
     log("auth svr: " + server + "\nusername: " + username + "\npassword: " + password + "\nmac: " + str(hex(mac))[:-1])
     log("bind ip: " + bind_ip)
     while True:
-        try:
-            package_tail = login(username, password, server)
-        except LoginException:
-            continue
-        log('package_tail',package_tail.encode('hex'))
-        #keep_alive1 is fucking bullshit!
-        empty_socket_buffer()
-        keep_alive1(SALT,package_tail,password,server)
-        keep_alive2(SALT,package_tail,password,server)
+      try:
+        package_tail = login(username, password, server)
+      except LoginException:
+        continue
+      log('package_tail',package_tail.encode('hex'))
+      #keep_alive1 is fucking bullshit!
+      empty_socket_buffer()
+      keep_alive1(SALT,package_tail,password,server)
+      keep_alive2(SALT,package_tail,password,server)
 
 if __name__ == "__main__":
     main()

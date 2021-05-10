@@ -4,36 +4,29 @@
 import socket
 import struct
 import time
-import hashlib
+from hashlib import md5
 import sys
 import os
 import random
-import traceback
 
 # CONFIG
-server = "192.168.100.150"
-username = ""
-password = ""
-host_name = "LIYUANYUAN"
-host_os = "8089D"
-host_ip = "10.30.22.17"
-PRIMARY_DNS = "114.114.114.114"
-dhcp_server = "0.0.0.0"
-mac = 0xb888e3051680
+server             = '192.168.0.2'
+username           = '151xxxxx'
+password           = '123456'
 CONTROLCHECKSTATUS = '\x20'
-ADAPTERNUM = '\x01'
+ADAPTERNUM         = '\x03'
+host_ip            = '172.19.5.249'
+IPDOG              = '\x01'
+host_name          = 'GILIGILIEYE'
+PRIMARY_DNS        = '192.168.1.2'
+dhcp_server        = '192.168.1.2'
+AUTH_VERSION       = '\x2e\x00'
+mac                = 0xaabbccddeeff
+host_os            = 'Windows NT 10.0'
 KEEP_ALIVE_VERSION = '\xdc\x02'
-'''
-AUTH_VERSION:
-    unsigned char ClientVerInfoAndInternetMode;
-    unsigned char DogVersion;
-'''
-AUTH_VERSION = '\x0a\x00'
-IPDOG = '\x01'
-ror_version = False
+ror_version        = False
 # CONFIG_END
 
-keep_alive1_mod = False #If you have trouble at KEEPALIVE1, turn this value to True
 nic_name = '' #Indicate your nic, e.g. 'eth0.2'.nic_name
 bind_ip = '0.0.0.0'
 
@@ -115,7 +108,7 @@ def challenge(svr,ran):
     return data[4:8]
 
 def md5sum(s):
-    m = hashlib.md5()
+    m = md5()
     m.update(s)
     return m.digest()
 
@@ -131,49 +124,6 @@ def ror(md5, pwd):
         x = ord(md5[i]) ^ ord(pwd[i])
         ret += chr(((x<<3)&0xFF) + (x>>5))
     return ret
-
-def gen_crc(data, encrypt_type):
-    DRCOM_DIAL_EXT_PROTO_CRC_INIT = 20000711
-    ret = ''
-    if encrypt_type == 0:
-        # 加密方式无
-        return struct.pack('<I',DRCOM_DIAL_EXT_PROTO_CRC_INIT) + struct.pack('<I',126)
-    elif encrypt_type == 1:
-        # 加密方式为 md5
-        foo = hashlib.md5(data).digest()
-        ret += foo[2]
-        ret += foo[3]
-        ret += foo[8]
-        ret += foo[9]
-        ret += foo[5]
-        ret += foo[6]
-        ret += foo[13]
-        ret += foo[14]
-        return ret
-    elif encrypt_type == 2:
-        # md4
-        foo = hashlib.new('md4', data).digest()
-        ret += foo[1]
-        ret += foo[2]
-        ret += foo[8]
-        ret += foo[9]
-        ret += foo[4]
-        ret += foo[5]
-        ret += foo[11]
-        ret += foo[12]
-        return ret
-    elif encrypt_type == 3:
-        # sha1
-        foo = hashlib.sha1(data).digest()
-        ret += foo[2]
-        ret += foo[3]
-        ret += foo[9]
-        ret += foo[10]
-        ret += foo[5]
-        ret += foo[6]
-        ret += foo[15]
-        ret += foo[16]
-        return ret
 
 def keep_alive_package_builder(number,random,tail,type=1,first=False):
     data = '\x07'+ chr(number) + '\x28\x00\x0b' + chr(type)
@@ -293,7 +243,8 @@ def keep_alive2(*args):
             #log('DEBUG: keep_alive2,packet 5 return\n',data.encode('hex'))
             i = (i+2) % 0xFF
         except:
-            break
+            log('[keep_alive2] error', 'raise Exception to main()')
+            raise
 
 def checksum(s):
     ret = 1234
@@ -305,24 +256,24 @@ def checksum(s):
 
 def mkpkt(salt, usr, pwd, mac):
     '''
-	struct  _tagLoginPacket
-	{
-	    struct _tagDrCOMHeader Header;
-	    unsigned char PasswordMd5[MD5_LEN];
-	    char Account[ACCOUNT_MAX_LEN];
-	    unsigned char ControlCheckStatus;
-	    unsigned char AdapterNum;
-	    unsigned char MacAddrXORPasswordMD5[MAC_LEN];
-	    unsigned char PasswordMd5_2[MD5_LEN];
-	    unsigned char HostIpNum;
-	    unsigned int HostIPList[HOST_MAX_IP_NUM];
-	    unsigned char HalfMD5[8];
-	    unsigned char DogFlag;
-	    unsigned int unkown2;
-	    struct _tagHostInfo HostInfo;
-	    unsigned char ClientVerInfoAndInternetMode;
-	    unsigned char DogVersion;
-	};
+    struct  _tagLoginPacket
+    {
+        struct _tagDrCOMHeader Header;
+        unsigned char PasswordMd5[MD5_LEN];
+        char Account[ACCOUNT_MAX_LEN];
+        unsigned char ControlCheckStatus;
+        unsigned char AdapterNum;
+        unsigned char MacAddrXORPasswordMD5[MAC_LEN];
+        unsigned char PasswordMd5_2[MD5_LEN];
+        unsigned char HostIpNum;
+        unsigned int HostIPList[HOST_MAX_IP_NUM];
+        unsigned char HalfMD5[8];
+        unsigned char DogFlag;
+        unsigned int unkown2;
+        struct _tagHostInfo HostInfo;
+        unsigned char ClientVerInfoAndInternetMode;
+        unsigned char DogVersion;
+    };
     '''
     data = '\x03\x01\x00' + chr(len(usr) + 20)
     data += md5sum('\x03\x01' + salt + pwd)
@@ -340,25 +291,25 @@ def mkpkt(salt, usr, pwd, mac):
     data += IPDOG
     data += '\x00'*4 # unknown2
     '''
-	struct  _tagOSVERSIONINFO
-	{
-	    unsigned int OSVersionInfoSize;
-	    unsigned int MajorVersion;
-	    unsigned int MinorVersion;
-	    unsigned int BuildNumber;
-	    unsigned int PlatformID;
-	    char ServicePack[128];
-	};
-	struct  _tagHostInfo
-	{
-	    char HostName[HOST_NAME_MAX_LEN];
-	    unsigned int DNSIP1;
-	    unsigned int DHCPServerIP;
-	    unsigned int DNSIP2;
-	    unsigned int WINSIP1;
-	    unsigned int WINSIP2;
-	    struct _tagDrCOM_OSVERSIONINFO OSVersion;
-	};
+    struct  _tagOSVERSIONINFO
+    {
+        unsigned int OSVersionInfoSize;
+        unsigned int MajorVersion;
+        unsigned int MinorVersion;
+        unsigned int BuildNumber;
+        unsigned int PlatformID;
+        char ServicePack[128];
+    };
+    struct  _tagHostInfo
+    {
+        char HostName[HOST_NAME_MAX_LEN];
+        unsigned int DNSIP1;
+        unsigned int DHCPServerIP;
+        unsigned int DNSIP2;
+        unsigned int WINSIP1;
+        unsigned int WINSIP2;
+        struct _tagDrCOM_OSVERSIONINFO OSVersion;
+    };
     '''
     data += host_name.ljust(32, '\x00') # _tagHostInfo.HostName
     data += ''.join([chr(int(i)) for i in PRIMARY_DNS.split('.')]) # _tagHostInfo.DNSIP1
@@ -379,25 +330,25 @@ def mkpkt(salt, usr, pwd, mac):
     data += AUTH_VERSION
     if ror_version:
         '''
-	struct  _tagLDAPAuth
-	{
-	    unsigned char Code;
-	    unsigned char PasswordLen;
-	    unsigned char Password[MD5_LEN];
-	};
+    struct  _tagLDAPAuth
+    {
+        unsigned char Code;
+        unsigned char PasswordLen;
+        unsigned char Password[MD5_LEN];
+    };
         '''
         data += '\x00' # _tagLDAPAuth.Code
         data += chr(len(pwd)) # _tagLDAPAuth.PasswordLen
         data += ror(md5sum('\x03\x01' + salt + pwd), pwd) # _tagLDAPAuth.Password
     '''
-	struct  _tagDrcomAuthExtData
-	{
-	    unsigned char Code;
-	    unsigned char Len;
-	    unsigned long CRC;
-	    unsigned short Option;
-	    unsigned char AdapterAddress[MAC_LEN];
-	};
+    struct  _tagDrcomAuthExtData
+    {
+        unsigned char Code;
+        unsigned char Len;
+        unsigned long CRC;
+        unsigned short Option;
+        unsigned char AdapterAddress[MAC_LEN];
+    };
     '''
     data += '\x02' # _tagDrcomAuthExtData.Code
     data += '\x0C' # _tagDrcomAuthExtData.Len
@@ -405,13 +356,9 @@ def mkpkt(salt, usr, pwd, mac):
     data += '\x00\x00' # _tagDrcomAuthExtData.Option
     data += dump(mac) # _tagDrcomAuthExtData.AdapterAddress
     # END OF _tagDrcomAuthExtData
-    if ror_version:
-        data += '\x00' * (8 - len(pwd))
-        if len(pwd)%2:
-            data += '\x00'
-    else:
-        data += '\x00' # auto logout / default: False
-        data += '\x00' # broadcast mode / default : False
+
+    data += '\x00' # auto logout / default: False
+    data += '\x00' # broadcast mode / default : False
     data += '\xE9\x13' #unknown, filled numbers randomly =w=
 
     log('[mkpkt]',data.encode('hex'))
@@ -484,55 +431,24 @@ def logout(usr, pwd, svr, mac, auth_info):
             log('[logout_auth] logouted.')
 
 def keep_alive1(salt,tail,pwd,svr):
-    if keep_alive1_mod:
-        res=''
-        while True:
-            s.sendto('\x07' + struct.pack('!B',int(time.time())%0xFF) + '\x08\x00\x01\x00\x00\x00', (svr, 61440))
-            log('[keep_alive1_challenge] keep_alive1_challenge packet sent.')
-            try:
-                res, address = s.recvfrom(1024)
-                log('[keep_alive1_challenge] recv', res.encode('hex'))
-            except:
-                log('[keep_alive1_challenge] timeout, retrying...')
-                continue
-            if address == (svr, 61440):
-                if res[0] == '\x07':
-                    break
-                else:
-                    raise ChallengeException
-            else:
-                continue
+    foo = struct.pack('!H',int(time.time())%0xFFFF)
+    data = '\xff' + md5sum('\x03\x01'+salt+pwd) + '\x00\x00\x00'
+    data += tail
+    data += foo + '\x00\x00\x00\x00'
+    log('[keep_alive1] send',data.encode('hex'))
 
-        seed = res[8:12]
-        # encrypt_type = int(res[5].encode('hex'))
-        encrypt_type = struct.unpack('<I', seed)[0] & 3
-        crc = gen_crc(seed, encrypt_type)
-        data = '\xFF' + '\x00'*7 + seed + crc + tail + struct.pack('!H', int(time.time())%0xFFFF)
-        log('[keep_alive1] send', data.encode('hex'))
-        s.sendto(data, (svr, 61440))
-        while True:
-            res, address = s.recvfrom(1024)
-            if res[0] == '\x07':
-                break
-            else:
-                log('[keep-alive1]recv/not expected', res.encode('hex'))
-        log('[keep-alive1]recv', res.encode('hex'))
-
-    else:
-        foo = struct.pack('!H',int(time.time())%0xFFFF)
-        data = '\xff' + md5sum('\x03\x01'+salt+pwd) + '\x00\x00\x00'
-        data += tail
-        data += foo + '\x00\x00\x00\x00'
-        log('[keep_alive1] send',data.encode('hex'))
-
-        s.sendto(data, (svr, 61440))
-        while True:
+    s.sendto(data, (svr, 61440))
+    while True:
+        try:
             data, address = s.recvfrom(1024)
             if data[0] == '\x07':
                 break
             else:
                 log('[keep-alive1]recv/not expected',data.encode('hex'))
-        log('[keep-alive1] recv', data.encode('hex'))
+        except:
+            log('[keep_alive1] error', 'raise Exception to main() or keep_alive2()')
+            raise
+    log('[keep-alive1] recv',data.encode('hex'))
 
 def empty_socket_buffer():
 #empty buffer for some fucking schools
@@ -566,8 +482,17 @@ def main():
         log('package_tail',package_tail.encode('hex'))
         #keep_alive1 is fucking bullshit!
         empty_socket_buffer()
-        keep_alive1(SALT,package_tail,password,server)
-        keep_alive2(SALT,package_tail,password,server)
+        try:
+            keep_alive1(SALT,package_tail,password,server)
+            keep_alive2(SALT,package_tail,password,server)
+        except Exception as e:
+            print(e)
+            log('[main] error', 'something was wrong in keep_alives, do everything again')
+            log(traceback.format_exc())
+            time.sleep(3)
+            #empty socket buffer before relogin
+            empty_socket_buffer()
+            continue
 
 if __name__ == "__main__":
     main()

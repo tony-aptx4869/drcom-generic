@@ -11,24 +11,24 @@ import random
 import traceback
 
 # CONFIG
-server = "192.168.100.150"
-username = ""
-password = ""
-host_name = "LIYUANYUAN"
-host_os = "8089D"
-host_ip = "10.30.22.17"
+server = "10.27.100.5"
+username = "" #账号
+password = "" #密码
+host_name = "" #自定
+host_os = "OSX" #自定
+host_ip = "" #获取到的ip
 PRIMARY_DNS = "114.114.114.114"
-dhcp_server = "0.0.0.0"
-mac = 0xb888e3051680
+dhcp_server = "10.27.100.100"
+mac = 0x000000000000 #你的MAC地址
 CONTROLCHECKSTATUS = '\x20'
-ADAPTERNUM = '\x01'
-KEEP_ALIVE_VERSION = '\xdc\x02'
+ADAPTERNUM = '\x08'
+KEEP_ALIVE_VERSION = '\x1f\x00'
 '''
 AUTH_VERSION:
     unsigned char ClientVerInfoAndInternetMode;
     unsigned char DogVersion;
 '''
-AUTH_VERSION = '\x0a\x00'
+AUTH_VERSION = '\x2f\x00'
 IPDOG = '\x01'
 ror_version = False
 # CONFIG_END

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#https://raw.githubusercontent.com/drcoms/drcom-generic/master/latest-wired.py
+#感谢学长的配置文件
 
 import socket
 import struct
@@ -11,17 +13,17 @@ import random
 import traceback
 
 # CONFIG
-server = "192.168.100.150"
+server = "192.168.211.3"
 username = ""
 password = ""
 host_name = "LIYUANYUAN"
 host_os = "8089D"
-host_ip = "10.30.22.17"
-PRIMARY_DNS = "114.114.114.114"
-dhcp_server = "0.0.0.0"
+host_ip = "10.15.143.178"
+PRIMARY_DNS = "211.82.96.1"
+dhcp_server = "211.82.99.88"
 mac = 0xb888e3051680
 CONTROLCHECKSTATUS = '\x20'
-ADAPTERNUM = '\x01'
+ADAPTERNUM = '\x04'
 KEEP_ALIVE_VERSION = '\xdc\x02'
 '''
 AUTH_VERSION:

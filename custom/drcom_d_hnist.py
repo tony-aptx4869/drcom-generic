@@ -10,27 +10,23 @@ import os
 import random
 import traceback
 
+# 中国联通 d版 
 # CONFIG
-server = "192.168.100.150"
-username = ""
-password = ""
-host_name = "LIYUANYUAN"
-host_os = "8089D"
-host_ip = "10.30.22.17"
-PRIMARY_DNS = "114.114.114.114"
-dhcp_server = "0.0.0.0"
-mac = 0xb888e3051680
+server = '172.19.253.2'
+username='xxxx@hnlg'
+password='xxxx'
 CONTROLCHECKSTATUS = '\x20'
-ADAPTERNUM = '\x01'
-KEEP_ALIVE_VERSION = '\xdc\x02'
-'''
-AUTH_VERSION:
-    unsigned char ClientVerInfoAndInternetMode;
-    unsigned char DogVersion;
-'''
-AUTH_VERSION = '\x0a\x00'
+ADAPTERNUM = '\x06'
+host_ip = '10.107.20.174'
 IPDOG = '\x01'
-ror_version = False
+host_name = 'GILIGILIEYE'
+PRIMARY_DNS = '223.5.5.5'
+dhcp_server = '10.107.0.1'
+AUTH_VERSION = '\x2f\x00'
+mac = 0x505bc2db0917
+host_os = 'NOTE7'
+KEEP_ALIVE_VERSION = '\xd8\x02'
+ror_version = False 
 # CONFIG_END
 
 keep_alive1_mod = False #If you have trouble at KEEPALIVE1, turn this value to True
